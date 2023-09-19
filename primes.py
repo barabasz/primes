@@ -15,7 +15,16 @@ class Prime(Param):
         self.indexs = f"{self.index}{self.sufix}"
         self.info = f"{self.name}: {self.symbol} = {self.value} ({self.indexs} prime)"
     def sfx(self, n: int):
-        return "%d%s"%(n,{1:"st",2:"nd",3:"rd"}.get(n%100 if (n%100)<20 else n%10,"th"))
+        return "%s"%({1:"st",2:"nd",3:"rd"}.get(n%100 if (n%100)<20 else n%10,"th"))
+
+class Timer(Param):
+    def __init__(self):
+        super().__init__(0, Primes.str("etime"), "ms")
+        self.start = time.time()
+    def stop(self):
+        self.stop = time.time()
+        self.value = round((self.stop - self.start) * 10**3, 4)
+        self.info = f"{self.name}: {self.value} {self.symbol}"
 
 class Primes:
     """
@@ -32,9 +41,8 @@ class Primes:
         self.first = first
         self.last = last
         if self.check():
-            self.time_start = time.time()
+            self.time = Timer()
             self.sieve()
-            self.time_stop = time.time()
             self.result()
         else:
             self.primes = None
@@ -77,70 +85,27 @@ class Primes:
         first = self.primes[0]
         last  = self.primes[-1]
         self.primes_count = len(self.primes)
-        self.range = f"{{{self.first}..{self.last}}}"
+        match self.primes_count:
+            case 0: self.primes_result = f"No primes"
+            case 1: self.primes_result = f"1 prime"
+            case _: self.primes_result = f"{self.primes_count} primes"
+        half = int(self.primes_count // 2)
+        self.range = f"{{{first}..{last}}}"
         self.title = f"\n{self.str('title')} {self.range}:\n"
-       
-        self.time_symbol = "ms"
-        self.time_value = round((self.time_stop - self.time_start) * 10**3, 4)
-        self.time_name = self.str("etime")
-        self.time_info = f"{self.time_name}: {self.time_value} {self.time_symbol}"
-        
         self.first = Prime(first, self.str("frstp"), "min(𝑥)", self.pindex(first))
         self.last = Prime(last, self.str("lastp"), "max(𝑥)", self.pindex(last))
         self.sum = Param(sum(self.primes), self.str("sumpr"), "Σ𝑥")
         self.median = Param(stat.median(self.primes), self.str("mdnpr"), "𝑀𝑒")
         self.mean = Param(stat.mean(self.primes), self.str("amean"), "x̄")
-        
-
-        self.primes_pstdev = stat.pstdev(self.primes)
-        self.primes_pvariance = stat.pvariance(self.primes)
+        self.pstdev = Param(stat.pstdev(self.primes), self.str("pstdv"), "σ𝑥")
+        self.pvariance = Param(stat.pvariance(self.primes), self.str("pvari"), "σ²𝑥")
         if self.primes_count > 1:
-            self.primes_stdev = stat.stdev(self.primes)
-            self.primes_variance = stat.variance(self.primes)
-            self.primes_half_list = int(self.primes_count // 2)
-            self.primes_q1 = stat.median(self.primes[:self.primes_half_list]) 
-            self.primes_q3_name = "Upper Quartile"
-            self.primes_q3 = stat.median(self.primes[-self.primes_half_list:])
-            self.qi_symbol = "Qi"
-            self.qi_value = self.primes_q3 - self.primes_q1
-            self.qi_name = "Interquartile Range"
-        
-    def print_cli(self):
-        match self.primes_count:
-            case 0: self.header_primes = f"No primes."
-            case 1: self.header_primes = f"1 prime:"
-            case _: self.header_primes = f"{self.primes_count} primes:"
-        self.primes_pstdev_info = f"Popul. std deviation:\tσ𝑥 = {self.primes_pstdev}"
-        self.primes_pvariance_info = f"Popul. variance:\tσ²𝑥 = {self.primes_pvariance}"
-        if self.primes_count > 1:
-            self.primes_stdev_info = f"Sample std deviation:\ts𝑥 = {self.primes_stdev}"
-            self.primes_variance_info = f"Sample variance:\ts²𝑥 = {self.primes_variance}"
-            self.primes_q1_info = f"Lower Quartile:\tQ1 = {self.primes_q1}"
-            self.primes_q3_info = f"Upper Quartile:\tQ3 = {self.primes_q3}"
-            primes_qi_info = f"{self.qi_name}:\t{self.qi_symbol} = {self.qi_value}"
-        
-        print(self.title)
-        print(self.header_primes)
-        if self.primes_count > 0: print(*self.primes, "\n")
-        print(self.first.info)
-        print(self.last.info)
-        print(self.sum.info)
-        print(self.mean.info)
-        print(self.median.info)
-        print(self.primes_pstdev_info)
-        print(self.primes_pvariance_info)
-        if self.primes_count > 1:
-            print(self.primes_stdev_info)
-            print(self.primes_variance_info)
-            print("q1", self.primes_q1)
-            print("q3", self.primes_q3)
-            print(primes_qi_info)
-        print(self.time_info)
-        
-    def print_cli_errors(self):
-        print("")
-        for e in self.error:
-            print(e)
+            self.stdev = Param(stat.stdev(self.primes), self.str("stdev"), "s𝑥")
+            self.variance = Param(stat.variance(self.primes), self.str("svari"), "s²𝑥")
+            self.q1 = Param(stat.median(self.primes[:half]), self.str("lquar"), "Q1")
+            self.q3 = Param(stat.median(self.primes[-half:]), self.str("uquar"), "Q3")
+            self.qi = Param(self.q3.value - self.q1.value, self.str("irang"), "Qi")
+        self.time.stop()
 
     @staticmethod
     def str(code):
@@ -162,6 +127,13 @@ class Primes:
             case "sumpr": return "Sum of primes"
             case "mdnpr": return "Median (middle value)"
             case "amean": return "Arithmetic mean"
+            case "pstdv": return "Population standard deviation"
+            case "pvari": return "Population variance"
+            case "stdev": return "Sample standard deviation"
+            case "svari": return "Sample variance"
+            case "lquar": return "Lower Quartile"
+            case "uquar": return "Upper Quartile"
+            case "irang": return "Interquartile Range"
 
     @staticmethod
     def help():
