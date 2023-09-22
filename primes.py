@@ -7,12 +7,17 @@ class Param:
         self.name = name
         self.info = f"{self.name}: {self.symbol} = {self.value}"
 
+class Param2(Param):
+    def __init__(self, value, name, symbol):
+        super().__init__(value, name, symbol)
+        self.info = f"{self.name}: {self.value}{self.symbol}"
+
 class Prime(Param):
     def __init__(self, value, name, symbol, index):
         super().__init__(value, name, symbol)
-        self.index = int(index)
-        self.sufix = self.sfx(self.index)
-        self.indexs = f"{self.index}{self.sufix}"
+        self.index = index
+        self.sufix = self.sfx(index)
+        self.indexs = f"{index}{self.sufix}"
         self.info = f"{self.name}: {self.symbol} = {self.value} ({self.indexs} prime)"
     def sfx(self, n: int):
         return "%s"%({1:"st",2:"nd",3:"rd"}.get(n%100 if (n%100)<20 else n%10,"th"))
@@ -26,6 +31,37 @@ class Timer(Param):
         self.value = round((self.stop - self.start) * 10**3, 4)
         self.info = f"{self.name}: {self.value} {self.symbol}"
 
+class All:
+    def __init__(self, list: list) -> None:
+        self.list = list
+        self.count = len(self.list)
+        if self.count > 0:
+            self.first = Prime(self.list[0], Primes.str("frstp"), "First", 1)
+            self.last = Prime(self.list[-1], Primes.str("lastp"), "Last", self.count)
+            self.interval = f"{{{self.first.value}..{self.last.value}}}"
+
+class Range(All):
+    def __init__(self, list: list, index_first, index_last) -> None:
+        self.list = list
+        self.count = len(self.list)
+        if self.count > 0:
+            self.first = Prime(self.list[0], Primes.str("lwstp"), "min(𝑥)", index_first)
+            self.last = Prime(self.list[-1], Primes.str("highp"), "max(𝑥)", index_last)
+            self.interval = f"{{{self.first.value}..{self.last.value}}}"
+        match self.count:
+            case 0: self.result = f"No primes found"
+            case 1: self.result = f"1 prime found"
+            case _: self.result = f"{self.count} primes found"
+        self.half = int(self.count // 2)
+            
+class Request:
+    def __init__(self, start, stop) -> None:
+        self.first = int(start)
+        self.last = int(stop)
+        self.count = self.last - self.first + 1
+        self.interval = f"{{{self.first}..{self.last}}}"
+        self.title = f"\n{Primes.str('title')} {self.interval}:\n"
+
 class Primes:
     """
     Calculating primes, their statistics and other related numbers in specified range.
@@ -34,79 +70,72 @@ class Primes:
     where x and y are positive natural numbers, 𝑥 ≥ 1, 𝑦 ≥ 𝑥 and 𝑦 < 10000000.
     """
     max = 10000000
-    primes = []
-    primes_all = []
-
+    
     def __init__(self, first, last):
-        self.first = first
-        self.last = last
-        if self.check():
+        self.error = []
+        if self.check(first, last):
             self.time = Timer()
             self.sieve()
-            self.result()
-        else:
-            self.primes = None
+            if self.range.count > 0:
+                self.result()
+            self.time.stop()
 
-    def check(self):
-        self.error = []
+    def check(self, first, last):
         try:
-            self.first = int(self.first)
+            first = int(first)
         except ValueError:
             self.error.append(self.str('b_int'))
             return False
         try:
-            self.last = int(self.last)
+            last = int(last)
         except ValueError:
             self.error.append(self.str('e_int'))
             return False
-        if self.first < 1: self.error.append(self.str('b_pos'))
-        if self.last < 1: self.error.append(self.str('e_pos'))
-        if self.first > self.last: self.error .append(self.str('e_gtb'))
-        if self.last > self.max: self.error.append(self.str('e_max'))
-        return False if self.error else True
+        if first < 1: self.error.append(self.str('b_pos'))
+        if last < 1: self.error.append(self.str('e_pos'))
+        if first > last: self.error .append(self.str('e_gtb'))
+        if last > self.max: self.error.append(self.str('e_max'))
+        if not self.error:
+            self.request = Request(first, last)
+            return True
+        else:
+            return False
         
     def sieve(self):
-        sieve_array = dict((i, True) for i in range(2, self.last + 1))
-        for i in range(2, math.isqrt(self.last) + 1):
+        primes_all = []
+        primes_range = []
+        sieve_array = dict((i, True) for i in range(2, self.request.last + 1))
+        for i in range(2, math.isqrt(self.request.last) + 1):
             if sieve_array[i] == False: continue
-            for j in range(i * 2, self.last + 1, i):
+            for j in range(i * 2, self.request.last + 1, i):
                 sieve_array[j] = False
         for i in sieve_array:
             if sieve_array[i] == True:
-                self.primes_all.append(i)
-                if i < self.first: continue
-                self.primes.append(i)
+                primes_all.append(i)
+                if i < self.request.first: continue
+                primes_range.append(i)
+        self.all = All(primes_all)
+        if len(primes_range) > 0:
+            first_index = primes_all.index(primes_range[0]) + 1
+            self.range = Range(primes_range, first_index, self.all.count)
+        else:
+            self.range = Range(primes_range, 0, self.all.count)
         del sieve_array
     
-    def pindex(self, p: int):
-        return self.primes_all.index(p) + 1
-    
     def result(self):
-        first = self.primes[0]
-        last  = self.primes[-1]
-        self.primes_count = len(self.primes)
-        match self.primes_count:
-            case 0: self.primes_result = f"No primes"
-            case 1: self.primes_result = f"1 prime"
-            case _: self.primes_result = f"{self.primes_count} primes"
-        half = int(self.primes_count // 2)
-        self.range = f"{{{first}..{last}}}"
-        self.title = f"\n{self.str('title')} {self.range}:\n"
-        self.first = Prime(first, self.str("frstp"), "min(𝑥)", self.pindex(first))
-        self.last = Prime(last, self.str("lastp"), "max(𝑥)", self.pindex(last))
-        self.sum = Param(sum(self.primes), self.str("sumpr"), "Σ𝑥")
-        self.median = Param(stat.median(self.primes), self.str("mdnpr"), "𝑀𝑒")
-        self.mean = Param(stat.mean(self.primes), self.str("amean"), "x̄")
-        self.pstdev = Param(stat.pstdev(self.primes), self.str("pstdv"), "σ𝑥")
-        self.pvariance = Param(stat.pvariance(self.primes), self.str("pvari"), "σ²𝑥")
-        if self.primes_count > 1:
-            self.stdev = Param(stat.stdev(self.primes), self.str("stdev"), "s𝑥")
-            self.variance = Param(stat.variance(self.primes), self.str("svari"), "s²𝑥")
-            self.q1 = Param(stat.median(self.primes[:half]), self.str("lquar"), "Q1")
-            self.q3 = Param(stat.median(self.primes[-half:]), self.str("uquar"), "Q3")
+        self.pcent = Param2(round(self.range.count / self.request.count * 100, 2), self.str("pcent"), "%")
+        self.sum = Param(sum(self.range.list), self.str("sumpr"), "Σ𝑥")
+        self.median = Param(stat.median(self.range.list), self.str("mdnpr"), "𝑀𝑒")
+        self.mean = Param(stat.mean(self.range.list), self.str("amean"), "x")
+        self.pstdev = Param(stat.pstdev(self.range.list), self.str("pstdv"), "σ𝑥")
+        self.pvariance = Param(stat.pvariance(self.range.list), self.str("pvari"), "σ²𝑥")
+        if self.range.count > 1:
+            self.stdev = Param(stat.stdev(self.range.list), self.str("stdev"), "s𝑥")
+            self.variance = Param(stat.variance(self.range.list), self.str("svari"), "s²𝑥")
+            self.q1 = Param(stat.median(self.range.list[:self.range.half]), self.str("lquar"), "Q1")
+            self.q3 = Param(stat.median(self.range.list[-self.range.half:]), self.str("uquar"), "Q3")
             self.qi = Param(self.q3.value - self.q1.value, self.str("irang"), "Qi")
-        self.time.stop()
-
+        
     @staticmethod
     def str(code):
         match code:
@@ -122,26 +151,18 @@ class Primes:
             case "etime": return "Execution time"
             case "stdev": return "Sample standard deviation"
             case "notap": return "Not applicable"
-            case "frstp": return "Lowest prime"
-            case "lastp": return "Highest prime"
+            case "frstp": return "First prime"
+            case "lwstp": return "Lowest prime"
+            case "lastp": return "Last prime"
+            case "highp": return "Highest prime"
             case "sumpr": return "Sum of primes"
             case "mdnpr": return "Median (middle value)"
             case "amean": return "Arithmetic mean"
-            case "pstdv": return "Population standard deviation"
-            case "pvari": return "Population variance"
+            case "pstdv": return "Pop. standard deviation"
+            case "pvari": return "Pop. variance"
             case "stdev": return "Sample standard deviation"
             case "svari": return "Sample variance"
             case "lquar": return "Lower Quartile"
             case "uquar": return "Upper Quartile"
             case "irang": return "Interquartile Range"
-
-    @staticmethod
-    def help():
-        return '\n'.join(['',
-            "Calculating primes and other mysterious numbers in specified range.\n",
-            f"Usage:\tprimes x\tfor range {{2..𝑥}}",
-            f"or\tprimes x y\tfor range {{𝑥..𝑦}}\n",
-            f"where x and y"
-            + f" are positive natural numbers, 𝑥 ≥ 1, "
-            + f"𝑦 ≥ 𝑥 and 𝑦 < {Primes.max}.",
-        ])
+            case "pcent": return "Percentage of primes"
