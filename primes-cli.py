@@ -3,6 +3,7 @@ from colored import Fore, Back, Style
 from primes import Primes
 
 fb = Fore.blue
+fm = Fore.magenta
 fy = Fore.yellow
 fg = Fore.green
 fr = Fore.red
@@ -14,12 +15,20 @@ er = f"{fr}✖{sr} "
 def print_value(value, padding = 43):
     name = f"{value.name} {fg}{value.symbol}{sr}".ljust(padding)
     print(f"{name}{fy}{value.value}{sr}")
-def print_value2(value, padding = 30):
-    name = f"{value.name}:".ljust(padding)
-    print(f"{name}{fy}{value.value}{fg}{value.symbol}{sr}")
-def print_value3(value, padding = 43):
+
+def print_gaps(value, padding = 43):
     name = f"{value.name} {fg}{value.symbol}{sr}".ljust(padding)
-    print(f"{name}{fy}{value.value}{sr} ({fg}{value.indexs}{sr} prime)")
+    if value.count == 1:
+        examples = f"{fm}{value.first}{sr}"
+    elif value.count == 2:
+        examples = f"{fm}{value.first}{sr} and {fm}{value.last}{sr}"
+    else:
+        examples = F"{fm}{value.first}{sr} {fg}...{value.count - 2} more...{sr} {fm}{value.last}{sr}"
+    print(f"{name}{fy}{value.value}{sr} ({value.count_text}) {examples}")
+
+def print_prime(value, padding = 43):
+    name = f"{value.name} {fg}{value.symbol}{sr}".ljust(padding)
+    print(f"{name}{fm}{value.value}{sr} ({fg}{value.indexs}{sr} prime)")
 
 def print_cli(p):
     title = f"\n{Primes.str('title')} {fy}{p.request.interval}{sr}:\n"
@@ -29,23 +38,29 @@ def print_cli(p):
         case _: result = f"{ok}{fy}{p.range.count}{sr} primes found"
     result += f" among {fy}{p.request.count}{sr} "
     result += "natural numbers." if p.request.count > 1 else "natural number."
-    time = f"\n{fb}{p.time.name}: {p.time.value} {p.time.symbol}{sr}"
+    stime = f"\n{fb}{p.time.sieve_name}: {p.time.sieve} {p.time.symbol}{sr}"
+    ttime = f"\n{fb}{p.time.name}: {p.time.value} {p.time.symbol}{sr}"
 
     print(title)
     print(result)
     if p.range.count > 0:
-        if p.range.count < 20:
+        print(fm, end="")
+        if p.range.count < 10:
             print(*p.range.list, "\n")
         else:
-            print(*p.range.list[:10], end="")
-            print(f" {fg}...{p.range.count - 20} more...{sr} ", end="")
-            print(*p.range.list[-10:], "\n")
-        print_value3(p.range.first)
-        print_value3(p.range.last)
-        print_value2(p.pcent)
+            print(*p.range.list[:5], end="")
+            print(f" {sr}...{p.range.count - 10} more...{fm} ", end="")
+            print(*p.range.list[-5:], "\n")
+        print(sr, end="")
+        print_prime(p.range.first)
+        print_prime(p.range.last)
+        print_value(p.pcent)
         print_value(p.sum)
         print_value(p.mean)
         print_value(p.median)
+        print_gaps(p.gaps.max)
+        print_gaps(p.gaps.min)
+        print_gaps(p.gaps.com)
         if p.range.count > 1:
             print_value(p.pstdev)
             print_value(p.pvariance)
@@ -54,7 +69,8 @@ def print_cli(p):
             print_value(p.q1)
             print_value(p.q3)
             print_value(p.qi)
-    print(time)
+    print(stime, end="")
+    print(ttime)
     
 def print_cli_errors(p):
     print("")
