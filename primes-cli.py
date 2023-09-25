@@ -12,23 +12,74 @@ sr = Style.reset
 ok = f"{fg}✔{sr} "
 er = f"{fr}✖{sr} "
 
+stat = True
+
+def print_primes():
+    print(fm, end="")
+    if p.range.count <= 10:
+        print(*p.range.list, "\n")
+    else:
+        print(*p.range.list[:5], end="")
+        print(f" {sr}...{p.range.count - 10} more...{fm} ", end="")
+        print(*p.range.list[-5:], "\n")
+    print(sr, end="")
+
 def print_value(value, padding = 43):
     name = f"{value.name} {fg}{value.symbol}{sr}".ljust(padding)
     print(f"{name}{fy}{value.value}{sr}")
 
+def print_list(value, padding = 30):
+    name = value.name.ljust(padding)
+    examples = f"({fm}" if value.count > 0 else ""
+    match value.count:
+        case 1: examples += f"{fm}{value.first}{sr}"
+        case 2: examples += f"{fm}{value.first}{sr} and {fm}{value.last}{sr}"
+        case _ if value.count < 6:
+            list = (str(i) for i in value.list)
+            examples += f"{sr}, {fm}".join(list)
+        case _:
+            examples += f"{fm}{value.list[0]}{sr}, {fm}{value.list[1]}{sr}, {fm}{value.list[2]}{sr}"
+            examples += ", ..., "
+            examples += f"{fm}{value.list[-3]}{sr}, {fm}{value.list[-2]}{sr}, {fm}{value.list[-1]}{sr}"
+    examples += f"{sr})" if value.count > 0 else ""
+    print(f"{name}{fy}{value.count}{sr} {examples}")
+
 def print_gaps(value, padding = 43):
-    name = f"{value.name} {fg}{value.symbol}{sr}".ljust(padding)
-    if value.count == 1:
-        examples = f"{fm}{value.first}{sr}"
-    elif value.count == 2:
-        examples = f"{fm}{value.first}{sr} and {fm}{value.last}{sr}"
+    if p.range.count > 2:
+        name = f"{value.name} {fg}{value.symbol}{sr}".ljust(padding)
+        if value.count > 0:
+            if value.count == 1:
+                examples = f"{fm}{value.first}{sr}"
+            elif value.count == 2:
+                examples = f"{fm}{value.first}{sr} and {fm}{value.last}{sr}"
+            else:
+                examples = f"{fm}{value.first}{sr} {fg}...{value.count - 2} more...{sr} {fm}{value.last}{sr}"
+            print(f"{name}{fy}{value.value}{sr} ({value.count_text}) {examples}")
     else:
-        examples = F"{fm}{value.first}{sr} {fg}...{value.count - 2} more...{sr} {fm}{value.last}{sr}"
-    print(f"{name}{fy}{value.value}{sr} ({value.count_text}) {examples}")
+        name = f"Gap {fg}∆{sr}".ljust(padding)
+        print(f"{name}{fy}{value.value}{sr}")
 
 def print_prime(value, padding = 43):
-    name = f"{value.name} {fg}{value.symbol}{sr}".ljust(padding)
-    print(f"{name}{fm}{value.value}{sr} ({fg}{value.indexs}{sr} prime)")
+    if p.range.count > 1:
+        name = f"{value.name} {fg}{value.symbol}{sr}".ljust(padding)
+        print(f"{name}{fm}{value.value}{sr} ({fg}{value.indexs}{sr} prime)")
+    else:
+        name = f"Prime number found".ljust(padding - 13)
+        print(f"{name}{fm}{value.value}{sr} ({fg}{value.indexs}{sr} prime)")
+
+def print_times(padding = 15):
+    sieve = p.time.sieve.name.ljust(padding)
+    print(f"\n{fb}{sieve}{p.time.sieve.value} {p.time.unit}{sr}")
+    gaps = p.time.gaps.name.ljust(padding)
+    print(f"{fb}{gaps}{p.time.gaps.value} {p.time.unit}{sr}")
+    basics = p.time.basics.name.ljust(padding)
+    print(f"{fb}{basics}{p.time.basics.value} {p.time.unit}{sr}")
+    stats = p.time.stats.name.ljust(padding)
+    print(f"{fb}{stats}{p.time.stats.value} {p.time.unit}{sr}")
+    weird = p.time.weird.name.ljust(padding)
+    print(f"{fb}{weird}{p.time.weird.value} {p.time.unit}{sr}")
+    total = p.time.total.name.ljust(padding)
+    print(f"{fb}{sb}{total}{p.time.total.value} {p.time.unit}{sr}")
 
 def print_cli(p):
     title = f"\n{Primes.str('title')} {fy}{p.request.interval}{sr}:\n"
@@ -38,30 +89,29 @@ def print_cli(p):
         case _: result = f"{ok}{fy}{p.range.count}{sr} primes found"
     result += f" among {fy}{p.request.count}{sr} "
     result += "natural numbers." if p.request.count > 1 else "natural number."
-    stime = f"\n{fb}{p.time.sieve_name}: {p.time.sieve} {p.time.symbol}{sr}"
-    ttime = f"\n{fb}{p.time.name}: {p.time.value} {p.time.symbol}{sr}"
 
     print(title)
     print(result)
-    if p.range.count > 0:
-        print(fm, end="")
-        if p.range.count < 10:
-            print(*p.range.list, "\n")
-        else:
-            print(*p.range.list[:5], end="")
-            print(f" {sr}...{p.range.count - 10} more...{fm} ", end="")
-            print(*p.range.list[-5:], "\n")
-        print(sr, end="")
+    if p.range.count > 0 and stat:
+        print_primes()
         print_prime(p.range.first)
-        print_prime(p.range.last)
-        print_value(p.pcent)
-        print_value(p.sum)
-        print_value(p.mean)
-        print_value(p.median)
-        print_gaps(p.gaps.max)
-        print_gaps(p.gaps.min)
-        print_gaps(p.gaps.com)
         if p.range.count > 1:
+            print_prime(p.range.last)
+            print_gaps(p.gaps.max)
+            if p.range.count > 2:
+                print_gaps(p.gaps.min)
+                print_gaps(p.gaps.com)
+                print_list(p.gaps)
+        if p.thabits.count > 0: print_list(p.thabits)
+        if p.republican.count > 0: print_list(p.republican)
+        if p.democratic.count > 0: print_list(p.democratic)
+        if p.centrist.count > 0: print_list(p.centrist)
+        print()
+        print_value(p.pcent)
+        if p.range.count > 1:
+            print_value(p.sum)
+            print_value(p.mean)
+            print_value(p.median)
             print_value(p.pstdev)
             print_value(p.pvariance)
             print_value(p.stdev)
@@ -69,8 +119,7 @@ def print_cli(p):
             print_value(p.q1)
             print_value(p.q3)
             print_value(p.qi)
-    print(stime, end="")
-    print(ttime)
+    print_times()
     
 def print_cli_errors(p):
     print("")
