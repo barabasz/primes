@@ -28,8 +28,11 @@ def print_value(value, padding = 43):
     name = f"{value.name} {fg}{value.symbol}{sr}".ljust(padding)
     print(f"{name}{fy}{value.value}{sr}")
 
-def print_list(value, padding = 30):
-    name = value.name.ljust(padding)
+def print_list(value, padding = 43):
+    if hasattr(value, "form"):
+        name = f"{value.name}{fg} {value.form}{sr}".ljust(padding)
+    else:
+        name = value.name.ljust(padding)
     examples = f"({fm}" if value.count > 0 else ""
     match value.count:
         case 1: examples += f"{fm}{value.first}{sr}"
@@ -101,11 +104,12 @@ def print_cli(p):
             if p.range.count > 2:
                 print_gaps(p.gaps.min)
                 print_gaps(p.gaps.com)
-                print_list(p.gaps)
+                print_list(p.gaps, 30)
+        print()
+        if p.mersennes.count > 0: print_list(p.mersennes)
         if p.thabits.count > 0: print_list(p.thabits)
-        if p.republican.count > 0: print_list(p.republican)
-        if p.democratic.count > 0: print_list(p.democratic)
-        if p.centrist.count > 0: print_list(p.centrist)
+        if p.fermats.count > 0: print_list(p.fermats)
+        if p.wagstaffs.count > 0: print_list(p.wagstaffs)
         print()
         print_value(p.pcent)
         if p.range.count > 1:

@@ -13,10 +13,11 @@ class ParamStat(Param):
         self.info = f"{self.name} ({self.symbol}): {self.value}"
 
 class ParamList(Param):
-    def __init__(self, list, name):
+    def __init__(self, list, name, form = ""):
         super().__init__(False, name)
         self.list = list
         self.count = len(list)
+        self.form = form
         self.first = list[0] if self.count > 0 else False
         self.last = list[-1] if self.count > 0 else False
         self.info = f"{self.name}: {self.count}"
@@ -169,7 +170,6 @@ class Primes:
             self.basics()
             self.stats()
             self.weird()
-            self.useless()
             self.time.stop()
 
     def check(self, first, last):
@@ -256,46 +256,64 @@ class Primes:
         
     def weird(self):
         if self.range.count > 0:
-            self.thabits = ParamList(self.find_thabits(), self.str("p_tha"))
+            self.thabits = ParamList(self.find_thabits(), self.str("p_tha"), "3⋅2ⁿ-1")
+            self.mersennes = ParamList(self.find_mersennes(), self.str("p_mer"), "2ⁿ-1")
+            self.fermats = ParamList(self.find_fermats(), self.str("p_fer"), "2^2ⁿ-1")
+            self.wagstaffs = ParamList(self.find_wagstaffs(), self.str("p_wag"), "(2ᵖ+1)/3")
         else:
-            self.thabits = ParamList([], self.str("p_tha"))
+            self.thabits = ParamList([], self.str("p_tha"), "3⋅2ⁿ-1")
+            self.mersennes = ParamList([], self.str("p_mer"), "2ⁿ-1")
+            self.fermats = ParamList(self.find_fermats(), self.str("p_fer"), "2^2ⁿ-1")
+            self.wagstaffs = ParamList(self.find_wagstaffs(), self.str("p_wag"), "(2ᵖ+1)/3")
         self.time.weird()
 
-    def useless(self):
-        if False:
-            political = tuple((i, self.is_political(i)) for i in self.range.list)
-            republican = () #tuple(i[0] for i in political if i[1] == "r")
-            democratic = () #tuple(i[0] for i in political if i[1] == "d")
-            centrist = () #tuple(i[0] for i in political if i[1] == "c")
-            self.republican = ParamList(republican, self.str("p_rep"))
-            self.democratic = ParamList(democratic, self.str("p_dem"))
-            self.centrist = ParamList(centrist, self.str("p_cen"))
-        else:
-            self.republican = ParamList([], self.str("p_rep"))
-            self.democratic = ParamList([], self.str("p_dem"))
-            self.centrist = ParamList([], self.str("p_cen"))
+    def find_carols(self):
+        i, c = 0, 0
+        carols = set()
+        while c < self.request.last:
+            c = (2 ** i - 1) ** 2 - 2
+            carols.add(c)
+            i += 1 
+        return tuple(sorted(carols & set(self.range.list)))
 
     def find_thabits(self):
-        thabits = {2, 5, 11, 23, 47, 191, 383, 6143, 786431, 51539607551}
+        i, t = 0, 0
+        thabits = set()
+        while t < self.request.last:
+            t = 3 * 2 ** i - 1
+            thabits.add(t)
+            i += 1 
         return tuple(sorted(thabits & set(self.range.list)))
     
-    def is_political(self, i):
-        if i > 9:
-            s = str(i)
-            ln = len(s) // 2
-            left = self.is_prime(int(s[:ln]))
-            right = self.is_prime(int(s[-ln:]))
-            
-            if not left and right:
-                return "r"
-            elif left and not right:
-                return "d"
-            elif left and right:
-                return "c"
-            else:
-                return False
-        else:
-            return False
+    def find_mersennes(self):
+        i, m = 0, 0
+        mersennes = set()
+        while m < self.request.last:
+            m = 2 ** i - 1
+            mersennes.add(m)
+            i += 1
+        return tuple(sorted(mersennes & set(self.range.list)))
+
+    def find_fermats(self):
+        i, f = 0, 0
+        fermats = set()
+        while f < self.request.last:
+            f = 2 ** 2 ** i + 1
+            fermats.add(f)
+            i += 1
+        return tuple(sorted(fermats & set(self.range.list)))
+    
+    def find_wagstaffs(self):
+        i, w = 0, 0
+        wagstaffs = set()
+        while w < self.request.last:
+            p = self.range.list[i]
+            if (p % 2) != 0:
+                w = (2 ** p + 1) / 3
+                if w.is_integer():
+                    wagstaffs.add(int(w))
+            i += 1
+        return tuple(sorted(wagstaffs & set(self.range.list)))
 
     def is_prime(self, p: int):
         return True if p in self.range.list else False
@@ -328,7 +346,10 @@ class Primes:
             case "p_cen": return "Centrist primes"
             case "p_dem": return "Democratic primes"
             case "p_rep": return "Republican primes"
-            case "p_tha": return "Thabit primes 3⋅2ⁿ-1"
+            case "p_tha": return "Thabit primes"
+            case "p_mer": return "Mersenne primes"
+            case "p_fer": return "Fermat primes"
+            case "p_wag": return "Wagstaff primes"
             case "pcent": return "Percentage of primes"
             case "pstdv": return "Pop. standard deviation"
             case "pvari": return "Pop. variance"
